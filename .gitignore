@@ -1,8 +1,11 @@
 .vs/*
 minecraftassetextractor/Debug/*
+minecraftassetextractor/Release/*
 Debug/minecraftassetextractor.pdb
+Release/minecraftassetextractor.pdb
 x64/*
 minecraftassetextractor/x64/*
 minecraftassetextractor/dlls/**/**.dll
 minecraftassetextractor/minecraftassetextractor.aps
 Debug/*
+Release/*
