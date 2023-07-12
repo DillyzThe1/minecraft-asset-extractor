@@ -24,11 +24,12 @@ int main() {
 	char folderPath[250];
 	sprintf(folderPath, "C:\\Users\\%s\\AppData\\Roaming\\.minecraft\\assets\\indexes\\indexes", std::getenv("USERNAME"));
 	std::cout << folderPath << std::endl;
-	std::string file_path = tinyfd_openFileDialog("Locate Index File", folderPath, 1, fileFilter, "Minecraft Index JSON", 0);
-	if (file_path.empty()) {
+	char* file_path_c = tinyfd_openFileDialog("Locate Index File", folderPath, 1, fileFilter, "Minecraft Index JSON", 0);
+	if (!file_path_c) {
 		std::cout << "No file given!\n";
 		return 0;
 	}
+	std::string file_path = file_path_c;
 	std::cout << file_path << std::endl;
 
 	std::string actualFileName;
