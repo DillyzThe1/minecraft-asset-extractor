@@ -3,6 +3,9 @@
 #include <fstream>
 #include <filesystem>
 #include "json.hpp"
+#include "zip_file.hpp"
+
+//#define MUSIC_EXPORTS true
 
 using json = nlohmann::json;
 
@@ -20,6 +23,9 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 int main() {
 	// GET INDEX FILE
 	std::cout << " m,m .m  mien craft f it\n";
+	#if MUSIC_EXPORTS
+	std::cout << "HEADS UP!!!! MUSIC EXPORTS ARE TURNED ON AND THEY CRASH!!!!\n";
+	#endif
 	char folderPath[250];
 	sprintf(folderPath, "C:\\Users\\%s\\AppData\\Roaming\\.minecraft\\assets\\indexes\\indexes", std::getenv("USERNAME"));
 	std::cout << folderPath << std::endl;
@@ -44,24 +50,6 @@ int main() {
 	std::cout << std::endl;
 
 	// THE ACTUAL EXTRACTION
-
-	std::filesystem::path parentTempDir = std::filesystem::temp_directory_path();
-	char tempDir_cstr[250];
-	sprintf(tempDir_cstr, "%sMCAssetExtractor\\", parentTempDir.string().c_str());
-	std::filesystem::path tempDir = tempDir_cstr;
-	std::filesystem::path tempAssetsDir = tempDir.string() + std::string("assets\\");
-
-	std::cout << parentTempDir << std::endl;
-	std::cout << tempDir_cstr << std::endl;
-	std::cout << tempDir.string().c_str() << std::endl;
-	std::cout << std::endl;
-
-	std::filesystem::create_directory(tempDir);
-	std::filesystem::create_directory(tempAssetsDir);
-
-	std::cout << std::endl;
-
-	// json reading
 	std::ifstream indexFile_stream(file_path);
 	json indexFile = json::parse(indexFile_stream);
 	indexFile_stream.close();
@@ -69,23 +57,16 @@ int main() {
 	int objectCount = indexFile["objects"].size();
 	std::cout << objectCount << " objects are to be extracted." << std::endl << std::endl;
 
+	miniz_cpp::zip_file outputZip;
+	#if MUSIC_EXPORTS
+	miniz_cpp::zip_file outputZip_music;
+	#endif
+	std::string notetxt("These are the Minecraft assets indexed by " + actualFileName + ", ripped by MinecraftAssetExtractor.\nHave fun!\n\n       - DillyzThe1\n\nFailed Files:");
+
 	int counter = -1;
+	int totalSize = 0;
 	for (auto curObj : indexFile["objects"].items()) {
 		counter++;
-
-		if (counter >= 2)
-			continue;
-		//json mainObject = indexFile["objects"].type_name();
-		//std::string objectHash = indexFile["objects"][i]["hash"];
-		//std::string objectSize = indexFile["objects"][i]["size"];
-
-		//std::cout << objectHash << " - " << objectSize << std::endl;'
-		
-		std::string thepathstr = tempAssetsDir.string() + curObj.key().substr(0, curObj.key().find_last_of("/") + 1);
-		replace(thepathstr, "/", "\\");
-		std::filesystem::path pathWeHave = thepathstr;
-		std::cout << pathWeHave.string().c_str() << std::endl;
-		std::filesystem::create_directories(pathWeHave);
 
 		std::string objName = curObj.key().substr(curObj.key().find_last_of("/") + 1, curObj.key().length() - curObj.key().find_last_of("/") - 1);
 		std::cout << "Object Name: " << objName.c_str() << std::endl;
@@ -100,28 +81,57 @@ int main() {
 		std::cout << "Object Size: " << objSize << std::endl;
 
 		std::string assetPath_in = minecraftAssetsFolder + std::string("objects\\") + hashHeader + std::string("\\") + objHash;
-		std::string assetPath_out = tempAssetsDir.string() + curObj.key();
-		replace(assetPath_out, "/", "\\");
 
 
-		std::ifstream assetIn_stream(assetPath_in, std::ios::binary);
-		if (assetIn_stream.fail() || !assetIn_stream.is_open()) {
-			std::cout << "Cannot open " << assetPath_in << "!" << std::endl;
-			continue;
+		try {
+			if (curObj.key().find("music") == -1) {
+				std::ifstream assetIn_stream(assetPath_in, std::ios::binary);
+				if (assetIn_stream.fail() || !assetIn_stream.is_open()) {
+					std::cout << "Cannot open " << assetPath_in << "!" << std::endl;
+					continue;
+				}
+
+				std::stringstream ss;
+				ss << assetIn_stream.rdbuf();
+				outputZip.writestr(curObj.key(), ss.str());
+				totalSize += objSize;
+
+				assetIn_stream.close();
+			}
+			else {
+				#if MUSIC_EXPORTS
+				std::ifstream assetIn_stream(assetPath_in, std::ios::binary);
+				if (assetIn_stream.fail() || !assetIn_stream.is_open()) {
+					std::cout << "Cannot open " << assetPath_in << "!" << std::endl;
+					continue;
+				}
+
+				std::stringstream ss;
+				ss << assetIn_stream.rdbuf();
+				outputZip_music.writestr(curObj.key(), ss.str());
+				totalSize += objSize;
+
+				assetIn_stream.close();
+				#else
+				std::cout << "Unsupported File." << std::endl;
+				notetxt += "\n- " + curObj.key() + " (Music is unsupported)";
+				#endif
+			}
 		}
-
-		std::ofstream assetOut_stream(assetPath_out, std::ios::binary);
-		if (assetOut_stream.fail() || !assetOut_stream.is_open()) {
-			std::cout << "Cannot open " << assetPath_out << "!" << std::endl;
-			continue;
+		catch (std::exception e) {
+			notetxt += "\n- " + curObj.key() + " (" + e.what() + ")";
 		}
+		
 
-		assetOut_stream << assetIn_stream.rdbuf();
-		assetOut_stream.close();
-		assetIn_stream.close();
+		std::cout << "Total Archive Size: " << totalSize << std::endl;
 	
 		std::cout /* << curObj.key()*/ << std::endl;
 	}
+
+	outputZip.writestr("note.txt", notetxt);
+	#if MUSIC_EXPORTS
+	outputZip_music.writestr("note.txt", notetxt);
+	#endif
 
 	// SAVE ALL THE ASSETS
 
@@ -129,14 +139,21 @@ int main() {
 	char* save_path = tinyfd_saveFileDialog("Minecraft Assets ZIP", folderPath, 1, fileFilter2, "A ZIP containing all of your minecraft assets.");
 	if (!save_path) {
 		std::cout << "No file saved!\n";
-		//std::filesystem::remove_all(tempDir);
 		return 0;
 	}
-	std::cout << save_path << std::endl;
-	std::cout << std::endl;
+	outputZip.save(save_path);
 
-	//std::filesystem::remove_all(tempDir);
-	std::cout << "Removed temp folder." << std::endl;
+	#if MUSIC_EXPORTS
+	sprintf(folderPath, "C:\\Users\\%s\\Downloads\\mcassets_MUSIC_%s.zip", std::getenv("USERNAME"), actualFileName.c_str());
+	char* save_path2 = tinyfd_saveFileDialog("Minecraft Music ZIP", folderPath, 1, fileFilter2, "A ZIP containing all of your minecraft music.");
+	if (!save_path2) {
+		std::cout << "No file saved!\n";
+		return 0;
+	}
+	outputZip_music.save(save_path2);
+	#endif
+
+	std::cout << "saved to " << save_path << std::endl;
 	std::cout << std::endl;
 	return 0;
 }
