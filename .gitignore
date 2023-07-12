@@ -1,0 +1,7 @@
+.vs/*
+minecraftassetextractor/Debug/*
+Debug/minecraftassetextractor.pdb
+x64/*
+minecraftassetextractor/x64/*
+minecraftassetextractor/dlls/**/**.dll
+minecraftassetextractor/minecraftassetextractor.aps
