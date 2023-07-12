@@ -3,6 +3,7 @@ This program will extract a ZIP worth of assets, those of which will require you
 
 ## Libraries Used
 - tinyfiledialogs [[sourceforge.net]](https://sourceforge.net/projects/tinyfiledialogs/)
+- json [[github.com]](https://github.com/nlohmann/json)
 
 ## Disclaimer
 This program is not affiliated with Mojang Studios or any of their partners.<br>
