@@ -148,8 +148,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="tinyfiledialogs.h" />
     <ClInclude Include="zip_file.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="minecraftassetextractor.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
